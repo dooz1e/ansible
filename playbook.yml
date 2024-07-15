@@ -1,0 +1,86 @@
+- hosts: localhost
+  become: yes
+  vars: 
+      apps:
+        - name: was1_klas
+          src: /data/klas/klas.war #어플리케이션파일 위치
+          dest: /data/was/was1_klas/kdotapps/klas/ # 구축할 서비스 path
+          dest_file: /data/was/was1_klas/kdotapps/klas/klas.war
+          http_port: 9999
+          shutdown_port: 19999
+          app_base: kdotapps
+          Xms: 1024m
+          Xmx: 1024m
+        - name: was2_klasbatch
+          src: /data/klas/klasbatch.tar.gz
+          dest: /data/was/was2_klasbatch/kdotapps/klasbatch/
+          dest_file: /data/was/was2_klasbatch/kdotapps/klasbatch/klasbatch.tar.gz
+          http_port: 9998
+          shutdown_port: 19998
+          app_base: kdotapps
+          Xms: 1024m
+          Xmx: 1024m
+  tasks:
+ 
+  #- name: JDK 설치
+  #  apt:
+  #    name: openjdk-8-jdk
+  #    state: present
+ 
+  - name: Tomcat 다운로드
+    get_url:
+      url: https://dlcdn.apache.org/tomcat/tomcat-9/v9.0.91/bin/apache-tomcat-9.0.91.tar.gz
+      dest: /data/klas/apache-tomcat-9.0.91.tar.gz
+    become: yes
+ 
+  - name: Tomcat 압축 해제
+    unarchive:
+      src: "/data/klas/apache-tomcat-9.0.91.tar.gz"
+      dest: "/data/klas/"
+      remote_src: yes
+    become: yes
+ 
+  - name: Tomcat 이동
+    command: cp -r /data/klas/apache-tomcat-9.0.91 /data/was/{{ item.name }}
+    with_items: "{{ apps }}"
+
+  - name: 디렉터리 생성
+    file:
+      path: "{{ item.dest | dirname }}"
+      state: directory
+      mode: '0755'
+    with_items: "{{ apps }}"
+    become: yes
+
+  - name: server.xml 템플릿 적용
+    template:
+      src: /data/klas/server.xml.j2
+      dest: "/data/was/{{ item.name }}/conf/server.xml"
+    become: yes
+    with_items: "{{ apps }}"
+    vars:
+      shutdown_port: "{{ item.shutdown_port }}"
+      http_port: "{{ item.http_port }}"
+      app_base: "{{ item.app_base }}"
+
+  - name: catalina.sh 템플릿 적용
+    template:
+      src: /data/klas/catalina.sh.j2
+      dest: "/data/was/{{ item.name }}/bin/catalina.sh"
+    become: yes
+    with_items: "{{ apps }}"
+    vars:
+      Xmx: "{{ item.Xmx }}"
+      Xms: "{{ item.Xms }}"
+      
+  - name: 어플리케이션 배포 
+    unarchive:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+    with_items: "{{ apps }}"
+  - name: 어플리케이션 패치파일 삭제
+    file:
+      path: "{{ item.dest_file }}"
+      state: absent
+    with_items: "{{ apps }}"
+    become: yes
