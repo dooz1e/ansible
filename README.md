@@ -1,3 +1,3 @@
-# ansible
-upgrade tomcat by using ansible
-ansible-playbook playbook.yml
+
+Deploying Multiple Services on Tomcat in an Ubuntu Environment using Ansible
+# ansible-playbook playbook.yml
