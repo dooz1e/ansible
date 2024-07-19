@@ -22,10 +22,10 @@
           Xmx: 1024m
   tasks:
  
-  #- name: JDK 설치
-  #  apt:
-  #    name: openjdk-8-jdk
-  #    state: present
+  - name: JDK 설치
+    apt:
+     name: openjdk-8-jdk
+     state: present
  
   - name: Tomcat 다운로드
     get_url:
